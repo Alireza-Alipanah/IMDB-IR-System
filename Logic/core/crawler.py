@@ -195,6 +195,8 @@ class IMDbCrawler:
             The URL of the site
         """
         response = self.crawl(URL)
+        while response.status_code == 504:
+            response = self.crawl(URL)
         if response.status_code != 200:
             print(f'returend status code {response.status_code} for URL {URL}')
             return
