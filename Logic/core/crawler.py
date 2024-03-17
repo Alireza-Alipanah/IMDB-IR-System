@@ -61,26 +61,26 @@ class IMDbCrawler:
         """
         Save the crawled files into json
         """
-        with open('../IMDB_crawled.json', 'w') as f:
+        with open('IMDB_crawled.json', 'w') as f:
             json.dump(list(self.crawled), f)
 
-        with open('../IMDB_not_crawled.json', 'w') as f:
+        with open('IMDB_not_crawled.json', 'w') as f:
             json.dump(list(self.not_crawled), f)
 
-        with open('../IMDB_added_ids.json', 'w') as f:
+        with open('IMDB_added_ids.json', 'w') as f:
             json.dump(list(self.added_ids), f)
 
     def read_from_file_as_json(self):
         """
         Read the crawled files from json
         """
-        with open('../IMDB_crawled.json', 'r') as f:
+        with open('IMDB_crawled.json', 'r') as f:
             self.crawled = deque(json.load(f))
 
-        with open('../IMDB_not_crawled.json', 'r') as f:
+        with open('IMDB_not_crawled.json', 'r') as f:
             self.not_crawled = deque(json.load(f))
 
-        with open('../IMDB_added_ids.json', 'r') as f:
+        with open('IMDB_added_ids.json', 'r') as f:
             self.added_ids = set(json.load(f))
 
     def crawl(self, URL):
@@ -177,11 +177,6 @@ class IMDbCrawler:
                     self.not_crawled_lock.release()
                 futures.append(executor.submit(self.crawl_page_info, URL))
                 crawled_counter += 1
-                # print(crawled_counter)
-                # if crawled_counter % 20 == 0:
-                #     wait(futures)
-                #     futures = []
-                #     print(crawled_counter)
             wait(futures)
 
     def crawl_page_info(self, URL):
@@ -203,12 +198,12 @@ class IMDbCrawler:
             print(f'returend status code {response.status_code} for URL {URL}')
             return
         movie = self.get_imdb_instance()
+        self.extract_movie_info(response, movie, URL)
         try:
             self.crawled_lock.acquire()
             self.crawled.append(movie)
         finally:
             self.crawled_lock.release()
-        self.extract_movie_info(response, movie, URL)
         self.add_new_movies_to_queue(response)
 
     
