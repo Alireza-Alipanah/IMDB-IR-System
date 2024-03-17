@@ -61,26 +61,26 @@ class IMDbCrawler:
         """
         Save the crawled files into json
         """
-        with open('IMDB_crawled.json', 'w') as f:
+        with open('../IMDB_crawled.json', 'w') as f:
             json.dump(list(self.crawled), f)
 
-        with open('IMDB_not_crawled.json', 'w') as f:
+        with open('../IMDB_not_crawled.json', 'w') as f:
             json.dump(list(self.not_crawled), f)
 
-        with open('IMDB_added_ids.json', 'w') as f:
+        with open('../IMDB_added_ids.json', 'w') as f:
             json.dump(list(self.added_ids), f)
 
     def read_from_file_as_json(self):
         """
         Read the crawled files from json
         """
-        with open('IMDB_crawled.json', 'r') as f:
+        with open('../IMDB_crawled.json', 'r') as f:
             self.crawled = deque(json.load(f))
 
-        with open('IMDB_not_crawled.json', 'r') as f:
+        with open('../IMDB_not_crawled.json', 'r') as f:
             self.not_crawled = deque(json.load(f))
 
-        with open('IMDB_added_ids.json', 'r') as f:
+        with open('../IMDB_added_ids.json', 'r') as f:
             self.added_ids = set(json.load(f))
 
     def crawl(self, URL):
@@ -177,7 +177,7 @@ class IMDbCrawler:
                     self.not_crawled_lock.release()
                 futures.append(executor.submit(self.crawl_page_info, URL))
                 crawled_counter += 1
-                print(crawled_counter)
+                # print(crawled_counter)
                 # if crawled_counter % 20 == 0:
                 #     wait(futures)
                 #     futures = []
@@ -195,8 +195,10 @@ class IMDbCrawler:
             The URL of the site
         """
         response = self.crawl(URL)
-        while response.status_code == 504:
+        retries = 0
+        while response.status_code == 504 and retries < 20:
             response = self.crawl(URL)
+            retries += 1
         if response.status_code != 200:
             print(f'returend status code {response.status_code} for URL {URL}')
             return
@@ -383,9 +385,9 @@ class IMDbCrawler:
             The writers of the movie
         """
         try:
-            credits = soup.find('div', {'class':"sc-67fa2588-3 fZhuJ"}).find('ul').find_all('li', {'data-testid': 'title-pc-principal-credit'})
+            credits = soup.find('div', {'class':"sc-67fa2588-3"}).find('ul').find_all('li', {'data-testid': 'title-pc-principal-credit'})
             for i in range(len(credits)):
-                if 'Writers' in credits[i].text:
+                if 'Writer' in credits[i].text:
                     return [j.text for j in credits[i].find_all('li')]
             raise Exception('Couldnt find writers')
         except:
@@ -454,16 +456,11 @@ class IMDbCrawler:
             print("failed to get synopsis")
 
     def get_review_and_score(soup):
-        review  = None
-        score = None
         try:
             review = soup.find('div', {'class':'content'}).text
-        except:
-            pass
-        try:
             score = soup.find('span', {'class':'rating-other-user-rating'}).find('span').text
         except:
-            pass
+            return None
         return [review, score]
 
     def get_reviews_with_scores(URL):
@@ -486,7 +483,7 @@ class IMDbCrawler:
                 raise Exception(f'encountered status code {response.status_code}, expected 200.')
             soup = BeautifulSoup(response.content, 'html.parser')
             reviews = soup.find_all('div', {'class':"imdb-user-review"})
-            return [IMDbCrawler.get_review_and_score(review) for review in reviews]
+            return list(filter(None, [IMDbCrawler.get_review_and_score(review) for review in reviews]))
         except:
             print("failed to get reviews")
 
@@ -645,7 +642,7 @@ class IMDbCrawler:
 
 
 def main():
-    imdb_crawler = IMDbCrawler(crawling_threshold=1000)
+    imdb_crawler = IMDbCrawler(crawling_threshold=600)
     # imdb_crawler.read_from_file_as_json()
     imdb_crawler.start_crawling()
     imdb_crawler.write_to_file_as_json()
