@@ -3,7 +3,7 @@ from indexes_enum import Indexes,Index_types
 from index_reader import Index_reader
 
 class DocumentLengthsIndex:
-    def __init__(self,path='index/'):
+    def __init__(self, path='index/', crawled_data_path='../IMDB_crawled.json'):
         """
         Initializes the DocumentLengthsIndex class.
 
@@ -14,6 +14,7 @@ class DocumentLengthsIndex:
 
         """
 
+        self.documents = self.read_documents(crawled_data_path)
         self.documents_index = Index_reader(path, index_name=Indexes.DOCUMENTS).index
         self.document_length_index = {
             Indexes.STARS: self.get_documents_length(Indexes.STARS.value),
@@ -23,6 +24,14 @@ class DocumentLengthsIndex:
         self.store_document_lengths_index(path, Indexes.STARS)
         self.store_document_lengths_index(path, Indexes.GENRES)
         self.store_document_lengths_index(path, Indexes.SUMMARIES)
+
+    def read_documents(self, crawled_data_path):
+        """
+        Reads the documents.
+        
+        """
+        with open(crawled_data_path, 'r') as f:
+            return json.load(f)
 
     def get_documents_length(self, where):
         """
