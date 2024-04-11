@@ -61,7 +61,15 @@ class Tiered_index:
         first_tier = {}
         second_tier = {}
         third_tier = {}
-        #TODO
+        
+        for key, value in current_index.items():
+            if value <= first_tier_threshold:
+                first_tier[key] = value
+            elif value <= second_tier_threshold:
+                second_tier[key] = value
+            else:
+                third_tier[key] = value
+
         return {
             "first_tier": first_tier,
             "second_tier": second_tier,
