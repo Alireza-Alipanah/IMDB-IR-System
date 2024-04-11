@@ -255,7 +255,7 @@ class Index:
         if index_name not in self.index:
             raise ValueError('Invalid index name')
 
-        save_path = os.path.join(path, f'index_{index_name}.json')
+        save_path = os.path.join(path, f'{index_name}_index.json')
         with open(save_path, 'w') as f:
             json.dump(self.index[index_name], f)
 
@@ -270,7 +270,7 @@ class Index:
         """
         index = {}
         for index_name in  [Indexes.DOCUMENTS.value, Indexes.STARS.value, Indexes.GENRES.value, Indexes.SUMMARIES.value]:
-            save_path = os.path.join(path, f'index_{index_name}.json')
+            save_path = os.path.join(path, f'{index_name}_index.json')
             with open(save_path, 'r') as f:
                 data = json.load(f)
             index[index_name] = data

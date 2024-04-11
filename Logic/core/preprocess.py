@@ -1,4 +1,6 @@
 import nltk
+nltk.download('punkt')
+nltk.download('wordnet')
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 import re
@@ -37,7 +39,7 @@ class Preprocessor:
             document = self.remove_links(document)
             document = self.remove_punctuations(document)
             document = self.remove_stopwords(document)
-            document = self.normalize(document)
+            document = self.normalize(' '.join(document))
             preprocessed_documents.append(document)
         return preprocessed_documents
 
@@ -75,7 +77,9 @@ class Preprocessor:
             The text with links removed.
         """
         patterns = [r'\S*http\S*', r'\S*www\S*', r'\S+\.ir\S*', r'\S+\.com\S*', r'\S+\.org\S*', r'\S*@\S*']
-        return re.sub('|'.join(patterns), ' ', text)
+        for pattern in patterns:
+            text = re.sub(pattern, ' ', text)
+        return text
 
     def remove_punctuations(self, text: str):
         """
@@ -126,3 +130,20 @@ class Preprocessor:
         word_tokens = word_tokenize(text)
         filtered_text = [word for word in word_tokens if not word in self.stopwords]
         return filtered_text
+    
+
+if __name__ == '__main__':
+    import json
+
+    with open('IMDB_crawled.json', 'r') as f:
+        crawled = json.load(f)
+    preprocessed = []
+    for document in crawled:
+        if document['summaries'] is None:
+            continue
+        preprocessor = Preprocessor(document['summaries'])
+        document['summaries'] = preprocessor.preprocess()
+        preprocessed.append(document)
+    with open('preprocessed.json', 'w') as f:
+            json.dump(preprocessed, f)
+
