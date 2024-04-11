@@ -1,4 +1,12 @@
+import nltk
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
+import re
 
+
+def get_stopwords():
+    with open('stopwords.txt', 'r') as f:
+        return [i.strip() for i in f.readlines()]
 
 class Preprocessor:
 
@@ -11,9 +19,9 @@ class Preprocessor:
         documents : list
             The list of documents to be preprocessed, path to stop words, or other parameters.
         """
-        # TODO
         self.documents = documents
-        self.stopwords = []
+        self.stopwords = set(get_stopwords())
+        self.lemmatizer = WordNetLemmatizer()
 
     def preprocess(self):
         """
@@ -24,8 +32,14 @@ class Preprocessor:
         List[str]
             The preprocessed documents.
         """
-         # TODO
-        return
+        preprocessed_documents = []
+        for document in self.documents:
+            document = self.remove_links(document)
+            document = self.remove_punctuations(document)
+            document = self.remove_stopwords(document)
+            document = self.normalize(document)
+            preprocessed_documents.append(document)
+        return preprocessed_documents
 
     def normalize(self, text: str):
         """
@@ -41,8 +55,10 @@ class Preprocessor:
         str
             The normalized text.
         """
-        # TODO
-        return
+        text = text.lower()
+        words = self.tokenize(text)
+        words = [self.lemmatizer.lemmatize(word) for word in words]
+        return ' '.join(words)
 
     def remove_links(self, text: str):
         """
@@ -59,8 +75,7 @@ class Preprocessor:
             The text with links removed.
         """
         patterns = [r'\S*http\S*', r'\S*www\S*', r'\S+\.ir\S*', r'\S+\.com\S*', r'\S+\.org\S*', r'\S*@\S*']
-        # TODO
-        return
+        return re.sub('|'.join(patterns), ' ', text)
 
     def remove_punctuations(self, text: str):
         """
@@ -76,8 +91,7 @@ class Preprocessor:
         str
             The text with punctuations removed.
         """
-        # TODO
-        return
+        return re.sub(r'[^\w\s]', ' ', text)
 
     def tokenize(self, text: str):
         """
@@ -93,8 +107,7 @@ class Preprocessor:
         list
             The list of words.
         """
-        # TODO
-        return
+        return word_tokenize(text)
 
     def remove_stopwords(self, text: str):
         """
@@ -110,6 +123,6 @@ class Preprocessor:
         list
             The list of words with stopwords removed.
         """
-        # TODO
-        return
-
+        word_tokens = word_tokenize(text)
+        filtered_text = [word for word in word_tokens if not word in self.stopwords]
+        return filtered_text
