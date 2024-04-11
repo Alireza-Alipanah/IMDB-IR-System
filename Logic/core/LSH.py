@@ -202,13 +202,13 @@ if __name__ == '__main__':
     print('reading files...')
     with open('LSHFakeData.json', 'r') as file:
         data_fake = json.load(file)
-    with open('IMDB_crawled.json', 'r') as file:
-        data_crawled = json.load(file)
+    # with open('IMDB_crawled.json', 'r') as file:
+    #     data_crawled = json.load(file)
     print('getting document summaries...')
-    documents = [' '.join(document['summaries']) for document in data_fake] + \
-                [' '.join(document['summaries']) for document in data_crawled if document['summaries'] is not None]
+    documents = [' '.join(document['summaries']) for document in data_fake] 
+                # [' '.join(document['summaries']) for document in data_crawled if document['summaries'] is not None]
     print('performin minhashlsh...')
-    minhashlsh = MinHashLSH(documents, 100)
+    minhashlsh = MinHashLSH(documents, 128)
     buckets = minhashlsh.perform_lsh()
     print('testing...')
     minhashlsh.jaccard_similarity_test(buckets, documents)
