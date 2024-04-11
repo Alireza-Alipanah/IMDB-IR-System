@@ -374,6 +374,10 @@ if __name__ == '__main__':
     print('loaded indexes')
     print('')
     print('checking indexing...')
-    for index_name in  [Indexes.DOCUMENTS.value, Indexes.STARS.value, Indexes.GENRES.value, Indexes.SUMMARIES.value]:
+    for index_name, check_word in  [(Indexes.DOCUMENTS.value, 'good'),
+                                     (Indexes.STARS.value, 'Bachchan'),
+                                       (Indexes.GENRES.value, 'Animation'),
+                                         (Indexes.SUMMARIES.value, 'fresh')]:
         print(f'checking {index_name}')
-        index.check_if_indexing_is_good(index_name)
+        index.check_if_indexing_is_good(index_name, check_word=check_word)
+        print('')

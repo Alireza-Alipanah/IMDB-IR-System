@@ -1,4 +1,7 @@
-from .indexes_enum import Indexes,Index_types
+try:
+    from indexes_enum import Indexes,Index_types
+except ModuleNotFoundError:
+    from .indexes_enum import Indexes,Index_types
 import json
 
 

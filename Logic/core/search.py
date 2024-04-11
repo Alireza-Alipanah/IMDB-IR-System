@@ -1,9 +1,9 @@
 import json
 import numpy as np
-from .preprocess import Preprocessor
-from .scorer import Scorer
-from .indexes_enum import Indexes, Index_types
-from .index_reader import Index_reader
+from preprocess import Preprocessor
+from scorer import Scorer
+from indexer.indexes_enum import Indexes, Index_types
+from indexer.index_reader import Index_reader
 
 
 class SearchEngine:
@@ -12,23 +12,34 @@ class SearchEngine:
         Initializes the search engine.
 
         """
-        path = '/index'
+        path = './indexer/index/'
         self.document_indexes = {
-            Indexes.STARS: Index_reader(path, Indexes.STARS),
-            Indexes.GENRES: Index_reader(path, Indexes.GENRES),
-            Indexes.SUMMARIES: Index_reader(path, Indexes.SUMMARIES)
+            Indexes.STARS: Index_reader(path, Indexes.STARS).index,
+            Indexes.GENRES: Index_reader(path, Indexes.GENRES).index,
+            Indexes.SUMMARIES: Index_reader(path, Indexes.SUMMARIES).index
         }
         self.tiered_index = {
-            Indexes.STARS: Index_reader(path, Indexes.STARS, Index_types.TIERED),
-            Indexes.GENRES: Index_reader(path, Indexes.GENRES, Index_types.TIERED),
-            Indexes.SUMMARIES: Index_reader(path, Indexes.SUMMARIES, Index_types.TIERED)
+            Indexes.STARS: Index_reader(path, Indexes.STARS, Index_types.TIERED).index,
+            Indexes.GENRES: Index_reader(path, Indexes.GENRES, Index_types.TIERED).index,
+            Indexes.SUMMARIES: Index_reader(path, Indexes.SUMMARIES, Index_types.TIERED).index
         }
         self.document_lengths_index = {
-            Indexes.STARS: Index_reader(path, Indexes.STARS, Index_types.DOCUMENT_LENGTH),
-            Indexes.GENRES: Index_reader(path, Indexes.GENRES, Index_types.DOCUMENT_LENGTH),
-            Indexes.SUMMARIES: Index_reader(path, Indexes.SUMMARIES, Index_types.DOCUMENT_LENGTH)
+            Indexes.STARS: Index_reader(path, Indexes.STARS, Index_types.DOCUMENT_LENGTH).index,
+            Indexes.GENRES: Index_reader(path, Indexes.GENRES, Index_types.DOCUMENT_LENGTH).index,
+            Indexes.SUMMARIES: Index_reader(path, Indexes.SUMMARIES, Index_types.DOCUMENT_LENGTH).index
         }
-        self.metadata_index = Index_reader(path, Indexes.DOCUMENTS, Index_types.METADATA)
+        self.metadata_index = Index_reader(path, Indexes.DOCUMENTS, Index_types.METADATA).index
+
+        self.safe_scorers = {
+            Indexes.STARS: Scorer(self.document_indexes[Indexes.STARS], self.metadata_index['document_count']),
+            Indexes.GENRES: Scorer(self.document_indexes[Indexes.GENRES], self.metadata_index['document_count']),
+            Indexes.SUMMARIES: Scorer(self.document_indexes[Indexes.SUMMARIES], self.metadata_index['document_count'])
+        }
+        self.unsafe_scorers = {
+            Indexes.STARS: Scorer(self.tiered_index[Indexes.STARS], self.metadata_index['document_count']),
+            Indexes.GENRES: Scorer(self.tiered_index[Indexes.GENRES], self.metadata_index['document_count']),
+            Indexes.SUMMARIES: Scorer(self.tiered_index[Indexes.SUMMARIES], self.metadata_index['document_count'])
+        }
 
     def search(self, query, method, weights, safe_ranking = True, max_results=10):
         """
@@ -86,8 +97,15 @@ class SearchEngine:
         final_scores : dict
             The final scores of the documents.
         """
-        # TODO
-        pass
+        for field, value in weights.items():
+            if field not in scores:
+                continue
+            document_scores = scores[field]
+            for document_id in document_scores.keys():
+                if document_id not in final_scores:
+                    final_scores[document_id] = 0
+                final_scores[document_id] += value * document_scores[document_id]
+
 
     def find_scores_with_unsafe_ranking(self, query, method, weights, max_results, scores):
         """
@@ -106,10 +124,20 @@ class SearchEngine:
         scores : dict
             The scores of the documents.
         """
-        for field in weights:
+        for field, value in weights.items():
+            prev_score = {}
             for tier in ["first_tier", "second_tier", "third_tier"]:
-                #TODO
-                pass
+                if value == 0:
+                    continue
+                if method != 'OkapiBM25':
+                    score = self.unsafe_scorers[field].compute_scores_with_vector_space_model(query, method)
+                else:
+                    score = self.unsafe_scorers[field].compute_socres_with_okapi_bm25(query, \
+                                        self.metadata_index[field.value], self.document_lengths_index(field.value))
+                prev_score = self.merge_scores(score, prev_score)
+                if len(prev_score.keys()) >= max_results:
+                    break
+            scores[field] = prev_score
 
     def find_scores_with_safe_ranking(self, query, method, weights, scores):
         """
@@ -126,10 +154,15 @@ class SearchEngine:
         scores : dict
             The scores of the documents.
         """
-
-        for field in weights:
-            #TODO
-            pass
+        for field, value in weights.items():
+            if value == 0:
+                continue
+            if method != 'OkapiBM25':
+                scores[field] = self.safe_scorers[field].compute_scores_with_vector_space_model(query, method)
+            else:
+                scores[field] = self.safe_scorers[field].compute_socres_with_okapi_bm25(query,
+                                    self.metadata_index['averge_document_length'][field.value],
+                                      self.document_lengths_index[field])
 
     def merge_scores(self, scores1, scores2):
         """
@@ -147,8 +180,12 @@ class SearchEngine:
         dict
             The merged dictionary of scores.
         """
-
-        #TODO
+        for key, value in scores2:
+            if key not in scores1:
+                scores1[key] = value
+            else:
+                scores1[key] += value
+        return scores1
 
 
 if __name__ == '__main__':

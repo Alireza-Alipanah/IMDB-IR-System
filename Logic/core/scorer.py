@@ -46,7 +46,7 @@ class Scorer:
         list_of_documents = []
         for term in query:
             if term in self.index.keys():
-                list_of_documents.extend(self.index[term].keys())
+                list_of_documents.extend(self.index.get(term, {}).keys())
         return list(set(list_of_documents))
     
     def get_idf(self, term):
@@ -69,9 +69,11 @@ class Scorer:
         """
         idf = self.idf.get(term, None)
         if idf is None:
+            if term not in self.index:
+                return 0
             df = len(self.index[term].values())
-            idf[term] = np.log(self.N / df)
-        return idf
+            self.idf[term] = np.log(self.N / df)
+        return self.idf[term]
     
     def get_query_tfs(self, query):
         """
@@ -91,14 +93,14 @@ class Scorer:
     
     def apply_method(self, tf_dict, method):
         for key, value in tf_dict.items():
-            if method[0] == 'l':
-                value = 1 + np.log(value)
+            if method[0] == 'l' and value != 0:
+                    value = 1 + np.log(value)
             if method[1] == 'n':
                 continue
             tf_dict[key] = value * self.get_idf(key)
         if method[2] == 'n':
             return tf_dict
-        normalizing_factor = np.linalg.norm(list(tf_dict.values))
+        normalizing_factor = np.linalg.norm(list(tf_dict.values()))
         return {key: value / normalizing_factor for key, value in tf_dict.items()}
 
     def compute_scores_with_vector_space_model(self, query, method):
@@ -124,6 +126,7 @@ class Scorer:
         documents_scores = {}
         for document_id in list_of_documents:
             documents_scores[document_id] = self.get_vector_space_model_score(query, query_scores, document_id, document_method)
+        return documents_scores
         
     def get_vector_space_model_score(self, query, query_scores, document_id, document_method):
         """
@@ -147,7 +150,7 @@ class Scorer:
         """
         documents_score = {}
         for term in query:
-            documents_score[term] = self.index[term][document_id]
+            documents_score[term] = self.index.get(term, {}).get(document_id, 0)
         documents_score = self.apply_method(documents_score, document_method)
         return sum(documents_score.get(term, 0) * query_scores[term] for term in query)
 
@@ -171,7 +174,8 @@ class Scorer:
             A dictionary of the document IDs and their scores.
         """
         list_of_documents = self.get_list_of_documents(query)
-        return {document_id: self.get_okapi_bm25_score(query, document_id, average_document_field_length, document_lengths) for document_id in list_of_documents}
+        return {document_id: self.get_okapi_bm25_score(query, document_id, average_document_field_length,
+                                                        document_lengths) for document_id in list_of_documents}
 
     def get_okapi_bm25_score(self, query, document_id, average_document_field_length, document_lengths):
         """
@@ -195,8 +199,9 @@ class Scorer:
             The Okapi BM25 score of the document for the query.
         """
         return sum(
-            self.get_idf(term) * (self.k + 1) * self.index[document_id][term] / ( \
-                self.k * ((1 - self.b) + b * document_lengths[document_id] / average_document_field_length[document_id]) + self.index[document_id][term]
+            self.get_idf(term) * (self.k + 1) * self.index.get(term, {}).get(document_id, 0) / ( \
+                self.k * ((1 - self.b) + self.b * document_lengths[document_id] \
+                           / average_document_field_length) + self.index.get(term, {}).get(document_id, 0)
             )
             for term in query
         )
