@@ -47,7 +47,7 @@ class Metadata_index:
         where : str
             The field to get the document lengths for.
         """
-        lengths = [len(doc[where]) for doc in self.documents if doc[where] is not None]
+        lengths = [len(doc[where])  if doc[where] is not None else 0 for doc in self.documents]
         return float(np.mean(lengths))
 
     def store_metadata_index(self, path):
