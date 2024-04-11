@@ -1,5 +1,5 @@
-from .indexes_enum import Indexes, Index_types
-from .index_reader import Index_reader
+from indexes_enum import Indexes, Index_types
+from index_reader import Index_reader
 import json
 
 
@@ -96,3 +96,5 @@ if __name__ == "__main__":
     tiered = Tiered_index(
         path="index/"
     )
+    for index_name in  [Indexes.STARS, Indexes.GENRES, Indexes.SUMMARIES]:
+        tiered.store_tiered_index("index/", index_name)

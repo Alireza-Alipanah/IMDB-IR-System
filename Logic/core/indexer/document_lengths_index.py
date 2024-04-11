@@ -3,7 +3,7 @@ from indexes_enum import Indexes,Index_types
 from index_reader import Index_reader
 
 class DocumentLengthsIndex:
-    def __init__(self, path='index/', crawled_data_path='../preprocessed.json'):
+    def __init__(self, path='index/'):
         """
         Initializes the DocumentLengthsIndex class.
 
@@ -13,8 +13,6 @@ class DocumentLengthsIndex:
             The path to the directory where the indexes are stored.
 
         """
-
-        self.documents = self.read_documents(crawled_data_path)
         self.documents_index = Index_reader(path, index_name=Indexes.DOCUMENTS).index
         self.document_length_index = {
             Indexes.STARS: self.get_documents_length(Indexes.STARS.value),
@@ -48,7 +46,11 @@ class DocumentLengthsIndex:
             A dictionary of the document lengths. The keys are the document IDs, and the values are
             the document's length in that field (where).
         """
-        return [len(doc[where])  if doc[where] is not None else 0 for doc in self.documents]
+        lenghts = {}
+        for document_id, docuemnt in self.documents_index.items():
+            if docuemnt[where] is not None:
+                lenghts[document_id] = sum([len(i.split()) for i in docuemnt[where]])
+        return lenghts
     
     def store_document_lengths_index(self, path , index_name):
         """

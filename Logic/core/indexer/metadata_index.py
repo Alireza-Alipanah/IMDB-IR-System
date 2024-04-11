@@ -36,7 +36,7 @@ class Metadata_index:
         }
         metadata_index['document_count'] = len(self.documents)
 
-        return metadata_index
+        self.metadata_index = metadata_index
     
     def get_average_document_field_length(self, where):
         """
@@ -47,7 +47,7 @@ class Metadata_index:
         where : str
             The field to get the document lengths for.
         """
-        lengths = [len(doc[where])  if doc[where] is not None else 0 for doc in self.documents]
+        lengths = [sum([len(i.split()) for i in doc[where]])  if doc[where] is not None else 0 for doc in self.documents]
         return float(np.mean(lengths))
 
     def store_metadata_index(self, path):
@@ -67,4 +67,5 @@ class Metadata_index:
     
 if __name__ == "__main__":
     meta_index = Metadata_index()
-    print(meta_index.create_metadata_index())
+    meta_index.create_metadata_index()
+    meta_index.store_metadata_index('./index/')
