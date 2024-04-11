@@ -62,13 +62,20 @@ class Tiered_index:
         second_tier = {}
         third_tier = {}
         
-        for key, value in current_index.items():
-            if value <= first_tier_threshold:
-                first_tier[key] = value
-            elif value <= second_tier_threshold:
-                second_tier[key] = value
-            else:
-                third_tier[key] = value
+        for term in current_index.keys():
+            for document_id in current_index[term].keys():
+                if current_index[term][document_id] >= first_tier_threshold:
+                    if term not in first_tier:
+                        first_tier[term] = []
+                    first_tier[term].append(document_id)
+                elif current_index[term][document_id] >= second_tier_threshold:
+                    if term not in second_tier:
+                        second_tier[term] = []
+                    second_tier[term].append(document_id)
+                else:
+                    if term not in third_tier:
+                        third_tier[term] = []
+                    third_tier[term].append(document_id)
 
         return {
             "first_tier": first_tier,

@@ -67,3 +67,4 @@ class Metadata_index:
     
 if __name__ == "__main__":
     meta_index = Metadata_index()
+    print(meta_index.create_metadata_index())
