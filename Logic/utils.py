@@ -1,12 +1,17 @@
 from typing import Dict, List
-from core.search import SearchEngine
-from core.spell_correction import SpellCorrection
-from core.snippet import Snippet
-from core.indexes_enum import Indexes, Index_types
+from .core.search import SearchEngine
+from .core.spell_correction import SpellCorrection
+from .core.snippet import Snippet
+from .core.indexer.indexes_enum import Indexes, Index_types
+from .core.preprocess import Preprocessor
 import json
 
-movies_dataset = None  # TODO: load your movies dataset (from the json file you saved your indexes in), here
+movies_dataset = {}  # TODO: load your movies dataset (from the json file you saved your indexes in), here
 # You can refer to `get_movie_by_id` to see how this is used.
+with open('C:/Users/ALIREZA/Desktop/IMDB-IR-System/Logic/core/IMDB_crawled.json', 'r') as f:
+    data = json.load(f)
+for doc in data:
+    movies_dataset[doc['id']] = doc
 search_engine = SearchEngine()
 
 
@@ -26,8 +31,13 @@ def correct_text(text: str, all_documents: List[str]) -> str:
         The corrected form of the given text
     """
     # TODO: You can add any preprocessing steps here, if needed!
-    spell_correction_obj = SpellCorrection(all_documents)
-    text = spell_correction_obj.spell_check(text)
+    all_documents_summaries = []
+    for document in all_documents.values():
+        all_documents_summaries.extend(document['summaries'])
+    preprocessor = Preprocessor(all_documents_summaries, do_lemmatization=False)
+    all_documents_summaries = preprocessor.preprocess()
+    spell_correction_obj = SpellCorrection(all_documents_summaries)
+    text = ' '.join([spell_correction_obj.spell_check(i) for i in text.split()])
     return text
 
 
@@ -67,7 +77,11 @@ def search(
     list
     Retrieved documents with snippet
     """
-    weights = ...  # TODO
+    weights = weights = {
+        Indexes.STARS: weights[0],
+        Indexes.GENRES: weights[1],
+        Indexes.SUMMARIES: weights[2]
+    }
     return search_engine.search(
         query, method, weights, max_results=max_result_count, safe_ranking=True
     )

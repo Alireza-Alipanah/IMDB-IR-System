@@ -1,6 +1,5 @@
 from nltk.tokenize import word_tokenize
-from preprocess import get_stopwords
-import heapq
+from .preprocess import get_stopwords
 
 
 class Snippet:
@@ -101,7 +100,7 @@ class Snippet:
 if __name__ == '__main__':
     number_of_words_on_each_side = 2
     query = 'test query what'
-    doc = 'this query test this is test query for that and just test no meaning'
+    doc = 'this query test this is test query for that and just test no meaning and another test for good measure'
     snippet = Snippet(number_of_words_on_each_side=number_of_words_on_each_side)
     print(f'query: {query}')
     print(f'doc: {doc}')

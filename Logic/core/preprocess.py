@@ -7,12 +7,13 @@ import re
 
 
 def get_stopwords():
-    with open('stopwords.txt', 'r') as f:
+    # with open('./stopwords.txt', 'r') as f:
+    with open('C:/Users/ALIREZA/Desktop/IMDB-IR-System/Logic/core/stopwords.txt', 'r') as f:
         return [i.strip() for i in f.readlines()]
 
 class Preprocessor:
 
-    def __init__(self, documents: list):
+    def __init__(self, documents: list, do_lemmatization=True):
         """
         Initialize the class.
 
@@ -24,6 +25,7 @@ class Preprocessor:
         self.documents = documents
         self.stopwords = set(get_stopwords())
         self.lemmatizer = WordNetLemmatizer()
+        self.do_lemmatization = do_lemmatization
 
     def preprocess(self):
         """
@@ -59,7 +61,8 @@ class Preprocessor:
         """
         text = text.lower()
         words = self.tokenize(text)
-        words = [self.lemmatizer.lemmatize(word) for word in words]
+        if self.do_lemmatization:
+            words = [self.lemmatizer.lemmatize(word) for word in words]
         return ' '.join(words)
 
     def remove_links(self, text: str):

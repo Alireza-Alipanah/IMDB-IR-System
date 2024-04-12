@@ -109,7 +109,7 @@ class SpellCorrection:
         scores_and_words = []
         for candidate_word, candidate_shingles in self.all_shingled_words.items():
             jaccard_score = self.jaccard_score(misspelled_shingles, candidate_shingles)
-            scores_and_words.append((jaccard_score, candidate_word))
+            scores_and_words.append([jaccard_score, candidate_word])
         scores_and_words.sort(key=lambda x: x[0], reverse=True)
         return scores_and_words[:5]
     
@@ -132,4 +132,4 @@ class SpellCorrection:
         max_tf = max(tfs)
         for i in range(len(nearest_words)):
             nearest_words[i][0] *= tfs[i] / max_tf
-        return max(nearest_words, lambda x: x[0])[1]
+        return max(nearest_words, key=lambda x: x[0])[1]
