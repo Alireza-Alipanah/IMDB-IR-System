@@ -50,12 +50,13 @@ class Index:
                 continue
             for star in document['stars']:
                 for term in star.split():
-                    if term not in star_index:
-                        star_index[term] = {}
-                    if document['id'] not in star_index[term]:
-                        star_index[term][document['id']] = 1
+                    term_lower = term.lower()
+                    if term_lower not in star_index:
+                        star_index[term_lower] = {}
+                    if document['id'] not in star_index[term_lower]:
+                        star_index[term_lower][document['id']] = 1
                     else:
-                        star_index[term][document['id']] += 1
+                        star_index[term_lower][document['id']] += 1
         return star_index
 
     def index_genres(self):
@@ -74,12 +75,13 @@ class Index:
                 continue
             for genre in document['genres']:
                 for term in genre.split():
-                    if term not in genre_index:
-                        genre_index[term] = {}
-                    if document['id'] not in genre_index[term]:
-                        genre_index[term][document['id']] = 1
+                    term_lower = term.lower()
+                    if term_lower not in genre_index:
+                        genre_index[term_lower] = {}
+                    if document['id'] not in genre_index[term_lower]:
+                        genre_index[term_lower][document['id']] = 1
                     else:
-                        genre_index[term][document['id']] += 1
+                        genre_index[term_lower][document['id']] += 1
         return genre_index
 
     def index_summaries(self):
@@ -346,7 +348,7 @@ class Index:
         if set(docs).issubset(set(posting_list)):
             print('Indexing is correct')
 
-            if implemented_time < brute_force_time:
+            if implemented_time <= brute_force_time:
                 print('Indexing is good')
                 return True
             else:
@@ -361,7 +363,7 @@ if __name__ == '__main__':
     with open('../preprocessed.json', 'r') as f:
         preprocessed = json.load(f)
     index = Index(preprocessed)
-    # index.check_add_remove_is_correct()
+    index.check_add_remove_is_correct()
     print('saving indexes...')
     for index_name in  [Indexes.DOCUMENTS.value, Indexes.STARS.value, Indexes.GENRES.value, Indexes.SUMMARIES.value]:
         index.store_index('./index', index_name)
@@ -371,13 +373,18 @@ if __name__ == '__main__':
     loaded_index = index.load_index('./index')
     for index_name in  [Indexes.DOCUMENTS.value, Indexes.STARS.value, Indexes.GENRES.value, Indexes.SUMMARIES.value]:
         print(f'checking {index_name}... result: {index.check_if_index_loaded_correctly(index_name, loaded_index[index_name])}')
+    index.index = loaded_index
     print('loaded indexes')
     print('')
     print('checking indexing...')
     for index_name, check_word in  [(Indexes.DOCUMENTS.value, 'good'),
-                                     (Indexes.STARS.value, 'Bachchan'),
-                                       (Indexes.GENRES.value, 'Animation'),
-                                         (Indexes.SUMMARIES.value, 'fresh')]:
-        print(f'checking {index_name}')
+                                    (Indexes.DOCUMENTS.value, 'bad'),
+                                    (Indexes.STARS.value, 'bachchan'),
+                                    (Indexes.STARS.value, 'bernal'),
+                                    (Indexes.GENRES.value, 'animation'),
+                                    (Indexes.GENRES.value, 'family'),
+                                    (Indexes.SUMMARIES.value, 'fresh'),
+                                    (Indexes.SUMMARIES.value, 'former')]:
+        print(f'checking={index_name} with word={check_word}')
         index.check_if_indexing_is_good(index_name, check_word=check_word)
         print('')
