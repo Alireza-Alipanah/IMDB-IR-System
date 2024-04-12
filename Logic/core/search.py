@@ -35,11 +35,13 @@ class SearchEngine:
             Indexes.GENRES: Scorer(self.document_indexes[Indexes.GENRES], self.metadata_index['document_count']),
             Indexes.SUMMARIES: Scorer(self.document_indexes[Indexes.SUMMARIES], self.metadata_index['document_count'])
         }
-        self.unsafe_scorers = {
-            Indexes.STARS: Scorer(self.tiered_index[Indexes.STARS], self.metadata_index['document_count']),
-            Indexes.GENRES: Scorer(self.tiered_index[Indexes.GENRES], self.metadata_index['document_count']),
-            Indexes.SUMMARIES: Scorer(self.tiered_index[Indexes.SUMMARIES], self.metadata_index['document_count'])
-        }
+        self.unsafe_scorers = {}
+        for tier in ["first_tier", "second_tier", "third_tier"]:
+            self.unsafe_scorers[tier] = {
+                Indexes.STARS: Scorer(self.tiered_index[Indexes.STARS][tier], self.metadata_index['document_count']),
+                Indexes.GENRES: Scorer(self.tiered_index[Indexes.GENRES][tier], self.metadata_index['document_count']),
+                Indexes.SUMMARIES: Scorer(self.tiered_index[Indexes.SUMMARIES][tier], self.metadata_index['document_count'])
+            }
 
     def search(self, query, method, weights, safe_ranking = True, max_results=10):
         """
@@ -130,9 +132,9 @@ class SearchEngine:
                 if value == 0:
                     continue
                 if method != 'OkapiBM25':
-                    score = self.unsafe_scorers[field].compute_scores_with_vector_space_model(query, method)
+                    score = self.unsafe_scorers[tier][field].compute_scores_with_vector_space_model(query, method)
                 else:
-                    score = self.unsafe_scorers[field].compute_socres_with_okapi_bm25(query, \
+                    score = self.unsafe_scorers[tier][field].compute_socres_with_okapi_bm25(query, \
                                         self.metadata_index[field.value], self.document_lengths_index(field.value))
                 prev_score = self.merge_scores(score, prev_score)
                 if len(prev_score.keys()) >= max_results:
