@@ -1,13 +1,18 @@
 from typing import Dict, List
 from .core.search import SearchEngine
-from .core.utility.spell_correction import SpellCorrection
-from .core.utility.snippet import Snippet
+from .core.spell_correction import SpellCorrection
+from .core.snippet import Snippet
 from .core.indexer.indexes_enum import Indexes, Index_types
+from .core.preprocess import Preprocessor
 import json
 
-movies_dataset = None  # TODO: load your movies dataset (from the json file you saved your indexes in), here
+movies_dataset = {}  # TODO: load your movies dataset (from the json file you saved your indexes in), here
 # You can refer to `get_movie_by_id` to see how this is used.
-# search_engine = SearchEngine()
+with open('C:/Users/ALIREZA/Desktop/IMDB-IR-System/Logic/core/IMDB_crawled.json', 'r') as f:
+    data = json.load(f)
+for doc in data:
+    movies_dataset[doc['id']] = doc
+search_engine = SearchEngine()
 
 
 def correct_text(text: str, all_documents: List[str]) -> str:
@@ -26,8 +31,13 @@ def correct_text(text: str, all_documents: List[str]) -> str:
         The corrected form of the given text
     """
     # TODO: You can add any preprocessing steps here, if needed!
-    # spell_correction_obj = SpellCorrection(all_documents)
-    # text = spell_correction_obj.spell_check(text)
+    all_documents_summaries = []
+    for document in all_documents.values():
+        all_documents_summaries.extend(document['summaries'])
+    preprocessor = Preprocessor(all_documents_summaries, do_lemmatization=False)
+    all_documents_summaries = preprocessor.preprocess()
+    spell_correction_obj = SpellCorrection(all_documents_summaries)
+    text = ' '.join([spell_correction_obj.spell_check(i) for i in text.split()])
     return text
 
 
@@ -67,11 +77,14 @@ def search(
     list
     Retrieved documents with snippet
     """
-    # weights = ...  # TODO
-    # return search_engine.search(
-    #     query, method, weights, max_results=max_result_count, safe_ranking=True
-    # )
-    return None
+    weights = weights = {
+        Indexes.STARS: weights[0],
+        Indexes.GENRES: weights[1],
+        Indexes.SUMMARIES: weights[2]
+    }
+    return search_engine.search(
+        query, method, weights, max_results=max_result_count, safe_ranking=True
+    )
 
 
 def get_movie_by_id(id: str, movies_dataset: List[Dict[str, str]]) -> Dict[str, str]:
@@ -91,23 +104,22 @@ def get_movie_by_id(id: str, movies_dataset: List[Dict[str, str]]) -> Dict[str, 
     dict
         The movie with the given id
     """
-    # result = movies_dataset.get(
-    #     id,
-    #     {
-    #         "Title": "This is movie's title",
-    #         "Summary": "This is a summary",
-    #         "URL": "https://www.imdb.com/title/tt0111161/",
-    #         "Cast": ["Morgan Freeman", "Tim Robbins"],
-    #         "Genres": ["Drama", "Crime"],
-    #         "Image_URL": "https://m.media-amazon.com/images/M/MV5BNDE3ODcxYzMtY2YzZC00NmNlLWJiNDMtZDViZWM2MzIxZDYwXkEyXkFqcGdeQXVyNjAwNDUxODI@._V1_.jpg",
-    #     },
-    # )
+    result = movies_dataset.get(
+        id,
+        {
+            "Title": "This is movie's title",
+            "Summary": "This is a summary",
+            "URL": "https://www.imdb.com/title/tt0111161/",
+            "Cast": ["Morgan Freeman", "Tim Robbins"],
+            "Genres": ["Drama", "Crime"],
+            "Image_URL": "https://m.media-amazon.com/images/M/MV5BNDE3ODcxYzMtY2YzZC00NmNlLWJiNDMtZDViZWM2MzIxZDYwXkEyXkFqcGdeQXVyNjAwNDUxODI@._V1_.jpg",
+        },
+    )
 
-    # result["Image_URL"] = (
-    #     "https://m.media-amazon.com/images/M/MV5BNDE3ODcxYzMtY2YzZC00NmNlLWJiNDMtZDViZWM2MzIxZDYwXkEyXkFqcGdeQXVyNjAwNDUxODI@._V1_.jpg"  # a default picture for selected movies
-    # )
-    # result["URL"] = (
-    #     f"https://www.imdb.com/title/{result['id']}"  # The url pattern of IMDb movies
-    # )
-    # return result
-    return None
+    result["Image_URL"] = (
+        "https://m.media-amazon.com/images/M/MV5BNDE3ODcxYzMtY2YzZC00NmNlLWJiNDMtZDViZWM2MzIxZDYwXkEyXkFqcGdeQXVyNjAwNDUxODI@._V1_.jpg"  # a default picture for selected movies
+    )
+    result["URL"] = (
+        f"https://www.imdb.com/title/{result['id']}"  # The url pattern of IMDb movies
+    )
+    return result

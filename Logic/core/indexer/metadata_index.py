@@ -1,9 +1,10 @@
-from .index_reader import Index_reader
-from .indexes_enum import Indexes, Index_types
+from index_reader import Index_reader
+from indexes_enum import Indexes, Index_types
 import json
+import numpy as np
 
 class Metadata_index:
-    def __init__(self, path='index/'):
+    def __init__(self, path='index/', crawled_data_path='../IMDB_crawled.json'):
         """
         Initializes the Metadata_index.
 
@@ -12,16 +13,16 @@ class Metadata_index:
         path : str
             The path to the indexes.
         """
-        
-        #TODO
+        self.path = path
+        self.documents = self.read_documents(crawled_data_path)
 
-    def read_documents(self):
+    def read_documents(self, crawled_data_path):
         """
         Reads the documents.
         
         """
-
-        #TODO
+        with open(crawled_data_path, 'r') as f:
+            return json.load(f)
 
     def create_metadata_index(self):    
         """
@@ -35,9 +36,9 @@ class Metadata_index:
         }
         metadata_index['document_count'] = len(self.documents)
 
-        return metadata_index
+        self.metadata_index = metadata_index
     
-    def get_average_document_field_length(self,where):
+    def get_average_document_field_length(self, where):
         """
         Returns the sum of the field lengths of all documents in the index.
 
@@ -46,8 +47,8 @@ class Metadata_index:
         where : str
             The field to get the document lengths for.
         """
-
-        #TODO
+        lengths = [sum([len(i.split()) for i in doc[where]])  if doc[where] is not None else 0 for doc in self.documents]
+        return float(np.mean(lengths))
 
     def store_metadata_index(self, path):
         """
@@ -66,3 +67,5 @@ class Metadata_index:
     
 if __name__ == "__main__":
     meta_index = Metadata_index()
+    meta_index.create_metadata_index()
+    meta_index.store_metadata_index('./index/')
