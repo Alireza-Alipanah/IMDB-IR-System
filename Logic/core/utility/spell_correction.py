@@ -27,8 +27,9 @@ class SpellCorrection:
             A set of shingles.
         """
         shingles = set()
-        
-        # TODO: Create shingle here
+
+        for i in range(len(word) - k + 1):
+            shingles.add(word[i:i+k])
 
         return shingles
     
@@ -49,9 +50,11 @@ class SpellCorrection:
             Jaccard score.
         """
 
-        # TODO: Calculate jaccard score here.
-
-        return
+        intersection_size = len(first_set.intersection(second_set))
+        union_size = len(first_set.union(second_set))
+        if union_size > 0:
+            return intersection_size / union_size
+        return 0
 
     def shingling_and_counting(self, all_documents):
         """
@@ -72,8 +75,19 @@ class SpellCorrection:
         all_shingled_words = dict()
         word_counter = dict()
 
-        # TODO: Create shingled words dictionary and word counter dictionary here.
-                
+        for document in all_documents:
+            words = document.split()
+            for word in words:
+                shingled_word = self.shingle_word(word)
+                if word in all_shingled_words:
+                    all_shingled_words[word].update(shingled_word)
+                else:
+                    all_shingled_words[word] = shingled_word
+                if word in word_counter:
+                    word_counter[word] += 1
+                else:
+                    word_counter[word] = 1
+
         return all_shingled_words, word_counter
     
     def find_nearest_words(self, word):
@@ -90,11 +104,14 @@ class SpellCorrection:
         list of str
             5 nearest words.
         """
-        top5_candidates = list()
-
-        # TODO: Find 5 nearest candidates here.
-
-        return top5_candidates
+        misspelled_shingles = self.shingle_word(word)
+    
+        scores_and_words = []
+        for candidate_word, candidate_shingles in self.all_shingled_words.items():
+            jaccard_score = self.jaccard_score(misspelled_shingles, candidate_shingles)
+            scores_and_words.append([jaccard_score, candidate_word])
+        scores_and_words.sort(key=lambda x: x[0], reverse=True)
+        return scores_and_words[:5]
     
     def spell_check(self, query):
         """
@@ -110,8 +127,9 @@ class SpellCorrection:
         str
             Correct form of the query.
         """
-        final_result = ""
-        
-        # TODO: Do spell correction here.
-
-        return final_result
+        nearest_words = self.find_nearest_words(query)
+        tfs = [self.word_counter[word] for score, word in nearest_words]
+        max_tf = max(tfs)
+        for i in range(len(nearest_words)):
+            nearest_words[i][0] *= tfs[i] / max_tf
+        return max(nearest_words, key=lambda x: x[0])[1]

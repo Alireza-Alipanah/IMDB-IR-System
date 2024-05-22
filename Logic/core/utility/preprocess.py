@@ -1,8 +1,21 @@
+import nltk
+nltk.download('punkt')
+nltk.download('wordnet')
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
+import re
+import os
+
+def get_stopwords():
+    # with open('./stopwords.txt', 'r') as f:
+    stop_words_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stopwords.txt')
+    with open(stop_words_path, 'r') as f:
+        return [i.strip() for i in f.readlines()]
 
 
 class Preprocessor:
 
-    def __init__(self, documents: list):
+    def __init__(self, documents: list, do_lemmatization=True):
         """
         Initialize the class.
 
@@ -11,9 +24,10 @@ class Preprocessor:
         documents : list
             The list of documents to be preprocessed, path to stop words, or other parameters.
         """
-        # TODO
         self.documents = documents
-        self.stopwords = []
+        self.stopwords = set(get_stopwords())
+        self.lemmatizer = WordNetLemmatizer()
+        self.do_lemmatization = do_lemmatization
 
     def preprocess(self):
         """
@@ -24,8 +38,14 @@ class Preprocessor:
         List[str]
             The preprocessed documents.
         """
-         # TODO
-        return
+        preprocessed_documents = []
+        for document in self.documents:
+            document = self.remove_links(document)
+            document = self.remove_punctuations(document)
+            document = self.remove_stopwords(document)
+            document = self.normalize(' '.join(document))
+            preprocessed_documents.append(document)
+        return preprocessed_documents
 
     def normalize(self, text: str):
         """
@@ -41,8 +61,11 @@ class Preprocessor:
         str
             The normalized text.
         """
-        # TODO
-        return
+        text = text.lower()
+        words = self.tokenize(text)
+        if self.do_lemmatization:
+            words = [self.lemmatizer.lemmatize(word) for word in words]
+        return ' '.join(words)
 
     def remove_links(self, text: str):
         """
@@ -59,8 +82,9 @@ class Preprocessor:
             The text with links removed.
         """
         patterns = [r'\S*http\S*', r'\S*www\S*', r'\S+\.ir\S*', r'\S+\.com\S*', r'\S+\.org\S*', r'\S*@\S*']
-        # TODO
-        return
+        for pattern in patterns:
+            text = re.sub(pattern, ' ', text)
+        return text
 
     def remove_punctuations(self, text: str):
         """
@@ -76,8 +100,7 @@ class Preprocessor:
         str
             The text with punctuations removed.
         """
-        # TODO
-        return
+        return re.sub(r'[^\w\s]', ' ', text)
 
     def tokenize(self, text: str):
         """
@@ -93,8 +116,7 @@ class Preprocessor:
         list
             The list of words.
         """
-        # TODO
-        return
+        return word_tokenize(text)
 
     def remove_stopwords(self, text: str):
         """
@@ -110,6 +132,23 @@ class Preprocessor:
         list
             The list of words with stopwords removed.
         """
-        # TODO
-        return
+        word_tokens = word_tokenize(text)
+        filtered_text = [word for word in word_tokens if not word in self.stopwords]
+        return filtered_text
+
+
+if __name__ == '__main__':
+    import json
+
+    with open('IMDB_crawled.json', 'r') as f:
+        crawled = json.load(f)
+    preprocessed = []
+    for document in crawled:
+        if document['summaries'] is None:
+            continue
+        preprocessor = Preprocessor(document['summaries'])
+        document['summaries'] = preprocessor.preprocess()
+        preprocessed.append(document)
+    with open('preprocessed.json', 'w') as f:
+            json.dump(preprocessed, f)
 
