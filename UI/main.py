@@ -88,15 +88,17 @@ def search_handling(
 
                 with st.container():
                     st.markdown("**Directors:**")
-                    num_authors = len(info["directors"])
-                    for j in range(num_authors):
-                        st.text(info["directors"][j])
+                    if info["directors"] is not None:
+                        num_authors = len(info["directors"])
+                        for j in range(num_authors):
+                            st.text(info["directors"][j])
 
                 with st.container():
                     st.markdown("**Stars:**")
-                    num_authors = len(info["stars"])
-                    stars = "".join(star + ", " for star in info["stars"])
-                    st.text(stars[:-2])
+                    if info["stars"] is not None:
+                        num_authors = len(info["stars"])
+                        stars = "".join(star + ", " for star in info["stars"])
+                        st.text(stars[:-2])
 
                     topic_card = st.columns(1)
                     with topic_card[0].container():

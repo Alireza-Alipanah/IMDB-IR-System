@@ -1,11 +1,11 @@
 import json
 import numpy as np
-from utility import Preprocessor, Scorer
+from .utility import Preprocessor, Scorer
 # from .indexer import Indexes, Index_types, Index_reader
-from preprocess import Preprocessor
-from scorer import Scorer
-from indexer.indexes_enum import Indexes, Index_types
-from indexer.index_reader import Index_reader
+from .preprocess import Preprocessor
+from .scorer import Scorer
+from .indexer.indexes_enum import Indexes, Index_types
+from .indexer.index_reader import Index_reader
 import os
 
 

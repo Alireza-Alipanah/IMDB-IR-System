@@ -5,10 +5,12 @@ from .core.snippet import Snippet
 from .core.indexer.indexes_enum import Indexes, Index_types
 from .core.preprocess import Preprocessor
 import json
+import os
 
 movies_dataset = {}  # TODO: load your movies dataset (from the json file you saved your indexes in), here
 # You can refer to `get_movie_by_id` to see how this is used.
-with open('C:/Users/ALIREZA/Desktop/IMDB-IR-System/Logic/core/IMDB_crawled.json', 'r') as f:
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'core', 'IMDB_crawled.json')
+with open(path, 'r') as f:
     data = json.load(f)
 for doc in data:
     movies_dataset[doc['id']] = doc
@@ -33,7 +35,10 @@ def correct_text(text: str, all_documents: List[str]) -> str:
     # TODO: You can add any preprocessing steps here, if needed!
     all_documents_summaries = []
     for document in all_documents.values():
-        all_documents_summaries.extend(document['summaries'])
+        summary = ''
+        if document['summaries'] is not None:
+            summary = document['summaries']
+        all_documents_summaries.extend(summary)
     preprocessor = Preprocessor(all_documents_summaries, do_lemmatization=False)
     all_documents_summaries = preprocessor.preprocess()
     spell_correction_obj = SpellCorrection(all_documents_summaries)
