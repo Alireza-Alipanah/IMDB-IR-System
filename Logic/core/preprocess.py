@@ -9,7 +9,7 @@ import os
 
 def get_stopwords():
     # with open('./stopwords.txt', 'r') as f:
-    stop_words_path = (os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stopwords.txt'))
+    stop_words_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stopwords.txt')
     with open(stop_words_path, 'r') as f:
         return [i.strip() for i in f.readlines()]
 

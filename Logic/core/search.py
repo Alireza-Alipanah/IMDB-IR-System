@@ -1,11 +1,12 @@
 import json
 import numpy as np
-from .utility import Preprocessor, Scorer
+from utility import Preprocessor, Scorer
 # from .indexer import Indexes, Index_types, Index_reader
-from .preprocess import Preprocessor
-from .scorer import Scorer
-from .indexer.indexes_enum import Indexes, Index_types
-from .indexer.index_reader import Index_reader
+from preprocess import Preprocessor
+from scorer import Scorer
+from indexer.indexes_enum import Indexes, Index_types
+from indexer.index_reader import Index_reader
+import os
 
 
 class SearchEngine:
@@ -14,7 +15,7 @@ class SearchEngine:
         Initializes the search engine.
 
         """
-        path = 'C:/Users/ALIREZA/Desktop/IMDB-IR-System/Logic/core/indexer/index/'
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'indexer', 'index')
         self.document_indexes = {
             Indexes.STARS: Index_reader(path, Indexes.STARS).index,
             Indexes.GENRES: Index_reader(path, Indexes.GENRES).index,
