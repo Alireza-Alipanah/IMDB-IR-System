@@ -30,6 +30,16 @@ class SearchEngine:
             Indexes.GENRES: Index_reader(path, Indexes.GENRES, Index_types.DOCUMENT_LENGTH).index,
             Indexes.SUMMARIES: Index_reader(path, Indexes.SUMMARIES, Index_types.DOCUMENT_LENGTH).index
         }
+        self.document_unique_lengths_index = {
+            Indexes.STARS: Index_reader(path, Indexes.STARS, Index_types.DOCUMENT_UNIQUE_LENGTH).index,
+            Indexes.GENRES: Index_reader(path, Indexes.GENRES, Index_types.DOCUMENT_UNIQUE_LENGTH).index,
+            Indexes.SUMMARIES: Index_reader(path, Indexes.SUMMARIES, Index_types.DOCUMENT_UNIQUE_LENGTH).index
+        }
+        self.collection_index = {
+            Indexes.STARS: Index_reader(path, Indexes.STARS, Index_types.COLLECTION).index,
+            Indexes.GENRES: Index_reader(path, Indexes.GENRES, Index_types.COLLECTION).index,
+            Indexes.SUMMARIES: Index_reader(path, Indexes.SUMMARIES, Index_types.COLLECTION).index
+        }
         self.metadata_index = Index_reader(path, Indexes.DOCUMENTS, Index_types.METADATA).index
 
         self.safe_scorers = {
@@ -44,6 +54,8 @@ class SearchEngine:
                 Indexes.GENRES: Scorer(self.tiered_index[Indexes.GENRES][tier], self.metadata_index['document_count']),
                 Indexes.SUMMARIES: Scorer(self.tiered_index[Indexes.SUMMARIES][tier], self.metadata_index['document_count'])
             }
+
+
     def search(
         self,
         query,
@@ -85,10 +97,10 @@ class SearchEngine:
             A list of tuples containing the document IDs and their scores sorted by their scores.
         """
         preprocessor = Preprocessor([query])
-        query = preprocessor.preprocess()[0]
+        query = preprocessor.preprocess()[0].split()
 
         scores = {}
-        if method == "unigram":
+        if method == "Unigram":
             self.find_scores_with_unigram_model(
                 query, smoothing_method, weights, scores, alpha, lamda
             )
@@ -212,8 +224,18 @@ class SearchEngine:
             The parameter used in some smoothing methods to balance between the document
             probability and the collection probability. Defaults to 0.5.
         """
-        # TODO
-        pass
+        for field, value in weights.items():
+            if value == 0:
+                continue
+            scores[field] = self.safe_scorers[field].compute_scores_with_unigram_model(
+                query,
+                smoothing_method,
+                self.document_lengths_index[field],
+                self.document_unique_lengths_index[field],
+                self.collection_index[field],
+                alpha,
+                lamda
+            )
 
 
     def merge_scores(self, scores1, scores2):
@@ -243,12 +265,13 @@ class SearchEngine:
 if __name__ == '__main__':
     search_engine = SearchEngine()
     query = "spider man in wonderland"
-    method = "lnc.ltc"
+    method = "Unigram"
+    smoothing_method = 'mixture'
     weights = {
         Indexes.STARS: 1,
         Indexes.GENRES: 1,
         Indexes.SUMMARIES: 1
     }
-    result = search_engine.search(query, method, weights)
+    result = search_engine.search(query, method, weights, smoothing_method=smoothing_method)
 
     print(result)

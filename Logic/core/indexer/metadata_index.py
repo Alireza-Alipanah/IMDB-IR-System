@@ -1,10 +1,14 @@
-from .index_reader import Index_reader
-from .indexes_enum import Indexes, Index_types
+try:
+    from .index_reader import Index_reader
+    from .indexes_enum import Indexes, Index_types
+except ImportError:
+    from index_reader import Index_reader
+    from indexes_enum import Indexes, Index_types
 import json
 import numpy as np
 
 class Metadata_index:
-    def __init__(self, path='index/', crawled_data_path='../IMDB_crawled.json'):
+    def __init__(self, path='index/', crawled_data_path='../utility/IMDB_crawled.json'):
         """
         Initializes the Metadata_index.
 

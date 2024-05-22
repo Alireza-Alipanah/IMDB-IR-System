@@ -2,7 +2,10 @@ import time
 import os
 import json
 import copy
-from .indexes_enum import Indexes
+try:
+    from .indexes_enum import Indexes
+except ImportError:
+    from indexes_enum import Indexes
 
 
 class Index:
@@ -360,7 +363,7 @@ class Index:
 
 # TODO: Run the class with needed parameters, then run check methods and finally report the results of check methods
 if __name__ == '__main__':
-    with open('../preprocessed.json', 'r') as f:
+    with open('../utility/preprocessed.json', 'r') as f:
         preprocessed = json.load(f)
     index = Index(preprocessed)
     index.check_add_remove_is_correct()

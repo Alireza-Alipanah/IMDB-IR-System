@@ -220,7 +220,7 @@ class Scorer:
         )
 
     def compute_scores_with_unigram_model(
-        self, query, smoothing_method, document_lengths=None, alpha=0.5, lamda=0.5
+        self, query, smoothing_method, document_lengths=None, document_unique_lengths=None, collection_index=None, alpha=0.5, lamda=0.5
     ):
         """
         Calculates the scores for each document based on the unigram model.
@@ -245,12 +245,28 @@ class Scorer:
         float
             A dictionary of the document IDs and their scores.
         """
+        query_tfs = self.get_query_tfs(query)
+        list_of_documents = self.get_list_of_documents(query)
+        return {document_id: self.compute_score_with_unigram_model(query_tfs, document_id, smoothing_method,
+                                                        document_lengths, document_unique_lengths, collection_index,
+                                                        alpha, lamda) for document_id in list_of_documents}
 
-        # TODO
-        pass
+    def get_naive_smoothing_probability(self, query_term, document_id, document_length, document_unique_length, k=1):
+        return (self.index.get(query_term, {}).get(document_id, 0) + k) / \
+            (document_length + document_unique_length * k)
+
+    def get_bayes_smoothing_probability(self, query_term, document_id, document_length, collection_index, alpha):
+        return (self.index.get(query_term, {}).get(document_length, 0) + alpha * collection_index.get(query_term, 0)) / \
+            (document_length + alpha)
+
+    def get_mixture_probability(self, query_term, document_id, document_length, collection_index, lamda):
+        return lamda * self.index.get(query_term, {}).get(document_id, 0) / document_length + \
+            (1 - lamda) * collection_index.get(query_term, 0)
+
 
     def compute_score_with_unigram_model(
-        self, query, document_id, smoothing_method, document_lengths, alpha, lamda
+        self, query_tfs, document_id, smoothing_method, document_lengths, document_unique_lengths, collection_index
+        , alpha, lamda
     ):
         """
         Calculates the scores for each document based on the unigram model.
@@ -277,6 +293,20 @@ class Scorer:
         float
             The Unigram score of the document for the query.
         """
+        prob = 1
+        doc_len = document_lengths[document_id]
+        document_unique_length = document_unique_lengths[document_id]
+        for query_term, count in query_tfs.items():
+            if smoothing_method == 'naive':
+                query_prob =  self.get_naive_smoothing_probability(query_term, document_id, doc_len, document_unique_length)
+            elif smoothing_method == 'bayes':
+                query_prob = self.get_bayes_smoothing_probability(query_term, document_id, doc_len, collection_index, alpha)
+            elif smoothing_method == 'mixture':
+                query_prob = self.get_mixture_probability(query_term, document_id, doc_len, collection_index, lamda)
+            elif smoothing_method is None:
+                query_prob = self.index.get(query_term, {}).get(document_id, 0) / doc_len
+            else:
+                raise Exception(f'{smoothing_method} smoothing method not implemented.')
+            prob = prob * (query_prob ** count)
+        return prob
 
-        # TODO
-        pass
