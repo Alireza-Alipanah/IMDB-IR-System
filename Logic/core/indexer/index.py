@@ -383,8 +383,8 @@ if __name__ == '__main__':
                                     (Indexes.STARS.value, 'bernal'),
                                     (Indexes.GENRES.value, 'animation'),
                                     (Indexes.GENRES.value, 'family'),
-                                    (Indexes.SUMMARIES.value, 'fresh'),
-                                    (Indexes.SUMMARIES.value, 'former')]:
+                                    (Indexes.SUMMARIES.value, 'showrunner'),
+                                    (Indexes.SUMMARIES.value, 'straitened')]:
         print(f'checking={index_name} with word={check_word}')
         index.check_if_indexing_is_good(index_name, check_word=check_word)
         print('')
