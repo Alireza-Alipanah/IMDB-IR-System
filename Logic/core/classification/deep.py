@@ -109,6 +109,7 @@ class DeepModelClassifier(BasicClassifier):
         """
         best_model_loss = float('inf')
         best_model = None
+        self.prediction_report()
         for epoch in tqdm(range(self.num_epochs)):
             self.model.train()
             running_loss = 0.0
