@@ -20,7 +20,6 @@ class FastTextDataLoader:
             The path to the file containing movie information.
         """
         self.file_path = file_path
-        pass
 
     def read_data_to_df(self):
         """
@@ -34,7 +33,10 @@ class FastTextDataLoader:
         ----------
             pd.DataFrame: A pandas DataFrame containing movie information (synopses, summaries, reviews, titles, genres).
         """
-        pass
+        df = pd.read_json(self.file_path)
+        df = df[['synposis', 'summaries', 'reviews', 'title', 'genres']]
+        return df
+        
 
     def create_train_data(self):
         """
@@ -43,6 +45,17 @@ class FastTextDataLoader:
         Returns:
             tuple: A tuple containing two NumPy arrays: X (preprocessed text data) and y (encoded genre labels).
         """
-        pass
+        df = self.read_data_to_df()
+        df['synposis'] = df['synposis'].apply(lambda x: ' '.join(x) if x is not None else '')
+        df['summaries'] = df['summaries'].apply(lambda x: ' '.join(x) if x is not None else '')
+        df['reviews'] = df['reviews'].apply(lambda x: ' '.join([' '.join(i) for i in x]) if x is not None else '')
+        df['X'] = df[['synposis', 'summaries', 'reviews', 'title']].agg(' '.join, axis=1)
+        label_encoder = LabelEncoder()
+        label_encoder.fit(df['genres'].explode().unique())
+        df['genre_encoded'] = df['genres'].apply(label_encoder.transform)
+        X = df['X'].values.tolist()
+        y = df['genre_encoded'].values.tolist()
+        texts = df['synposis'].values.tolist() + df['summaries'].values.tolist() + df['reviews'].values.tolist() + df['title'].values.tolist()
+        return X, y, texts
 
 

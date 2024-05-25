@@ -1,12 +1,19 @@
 import fasttext
 import re
+import os
+import multiprocessing as mp
 
 from tqdm import tqdm
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from scipy.spatial import distance
+import nltk
+nltk.download('stopwords')
 
-from .fasttext_data_loader import FastTextDataLoader
+try:
+    from .fasttext_data_loader import FastTextDataLoader
+except ImportError:
+    from fasttext_data_loader import FastTextDataLoader
 
 
 def preprocess_text(text, minimum_length=1, stopword_removal=True, stopwords_domain=[], lower_case=True,
@@ -31,7 +38,18 @@ def preprocess_text(text, minimum_length=1, stopword_removal=True, stopwords_dom
     punctuation_removal: bool
         whether to remove punctuations
     """
-    pass
+    if lower_case:
+        text = text.lower()
+    if punctuation_removal:
+        text = re.sub(r'[^\w\s]', ' ', text)
+    tokens = word_tokenize(text)
+    tokens = [token for token in tokens if len(token) >= minimum_length]
+    if stopword_removal:
+        english_stopwords = set(stopwords.words('english'))
+        all_stopwords = english_stopwords.union(set(stopwords_domain))
+        tokens = [token for token in tokens if token not in all_stopwords]
+    return ' '.join(tokens)
+
 
 class FastText:
     """
@@ -45,7 +63,7 @@ class FastText:
         The trained FastText model.
     """
 
-    def __init__(self, method='skipgram'):
+    def __init__(self, preprocessor, method='skipgram', model_path=None, use_mp=True):
         """
         Initializes the FastText with a preprocessor and a training method.
 
@@ -54,8 +72,10 @@ class FastText:
         method : str, optional
             The training method for the FastText model.
         """
+        self.preprocessor = preprocessor
         self.method = method
         self.model = None
+        self.use_mp = use_mp
 
 
     def train(self, texts):
@@ -67,9 +87,18 @@ class FastText:
         texts : list of str
             The texts to train the FastText model.
         """
-        pass
+        if self.use_mp:
+            with mp.Pool(16) as pool:
+                preprocessed_text = pool.map(self.preprocessor, texts)
+        else:
+            preprocessed_text = [self.preprocessor(i) for i in texts]
+        with open('train_data.txt', 'w') as f:
+            f.writelines(preprocessed_text)
+        self.model = fasttext.train_unsupervised('train_data.txt', model=self.method)
+        os.remove('train_data.txt')
 
-    def get_query_embedding(self, query):
+
+    def get_query_embedding(self, query, do_preprocess=True):
         """
         Generates an embedding for the given query.
 
@@ -87,7 +116,9 @@ class FastText:
         np.ndarray
             The embedding for the query.
         """
-        pass
+        if do_preprocess:
+            query = ' '.join(self.preprocessor(query))
+        return self.model.get_sentence_vector(query)
 
     def analogy(self, word1, word2, word3):
         """
@@ -101,21 +132,27 @@ class FastText:
         Returns:
             str: The word that completes the analogy.
         """
-        # Obtain word embeddings for the words in the analogy
-        # TODO
+        vector_word1 = self.model[word1]
+        vector_word2 = self.model[word2]
+        vector_word3 = self.model[word3]
 
-        # Perform vector arithmetic
-        # TODO
+        relationship_vector = vector_word2 - vector_word1
+        target_vector = vector_word3 + relationship_vector
 
-        # Create a dictionary mapping each word in the vocabulary to its corresponding vector
-        # TODO
+        closest_word = None
+        best_similarity = 0
+        input_words = set([word1, word2, word3])
+        for word in self.model.get_words():
+            if word in input_words:
+                continue
+            word_vector = self.model[word]
+            similarity = 1 - distance.cosine(target_vector, word_vector)
 
-        # Exclude the input words from the possible results
-        # TODO
+            if similarity > best_similarity:
+                best_similarity = similarity
+                closest_word = word
 
-        # Find the word whose vector is closest to the result vector
-        # TODO
-        pass
+        return closest_word
 
     def save_model(self, path='FastText_model.bin'):
         """
@@ -126,7 +163,7 @@ class FastText:
         path : str, optional
             The path to save the FastText model.
         """
-        pass
+        self.model.save_model(path)
 
     def load_model(self, path="FastText_model.bin"):
         """
@@ -137,7 +174,7 @@ class FastText:
         path : str, optional
             The path to load the FastText model.
         """
-        pass
+        self.model = fasttext.load_model(path)
 
     def prepare(self, dataset, mode, save=False, path='FastText_model.bin'):
         """
@@ -160,13 +197,15 @@ class FastText:
 if __name__ == "__main__":
     ft_model = FastText(preprocessor=preprocess_text, method='skipgram')
 
-    path = './Phase_1/index/'
-    ft_data_loader = FastTextDataLoader()
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'utility', 'IMDB_crawled.json')
+    ft_data_loader = FastTextDataLoader(path)
 
-    X = ft_data_loader.create_train_data(path)
+    X, y, texts = ft_data_loader.create_train_data()
 
-    ft_model.train(X)
-    ft_model.prepare(None, mode = "save")
+    # ft_model.train(texts)
+    # ft_model.prepare(None, mode = "save", save=True)
+
+    ft_model.prepare(None, mode = "load")
 
     print(10 * "*" + "Similarity" + 10 * "*")
     word = 'queen'
@@ -176,7 +215,7 @@ if __name__ == "__main__":
         print(f"Word: {neighbor[1]}, Similarity: {neighbor[0]}")
 
     print(10 * "*" + "Analogy" + 10 * "*")
-    word1 = "man"
-    word2 = "king"
+    word1 = "king"
+    word2 = "man"
     word3 = "queen"
     print(f"Similarity between {word1} and {word2} is like similarity between {word3} and {ft_model.analogy(word1, word2, word3)}")
