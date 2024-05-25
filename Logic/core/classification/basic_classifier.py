@@ -1,12 +1,22 @@
+########## needed for relative import ##########
+import inspect
+import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+################################################
+
 import numpy as np
 from tqdm import tqdm
 
-from ..word_embedding.fasttext_model import FastText
+from word_embedding.fasttext_model import FastText
 
 
 class BasicClassifier:
     def __init__(self):
-        raise NotImplementedError()
+        pass
 
     def fit(self, x, y):
         raise NotImplementedError()
@@ -29,5 +39,6 @@ class BasicClassifier:
         float
             The percentage of positive reviews
         """
-        pass
+        prediction = self.predict(sentences)
+        return np.sum(prediction) / prediction.shape[0]
 
