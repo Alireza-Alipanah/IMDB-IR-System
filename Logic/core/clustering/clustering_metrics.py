@@ -1,5 +1,6 @@
 import numpy as np
 
+from collections import Counter
 from typing import List
 from sklearn.metrics import silhouette_score
 from sklearn.metrics import adjusted_rand_score
@@ -27,7 +28,7 @@ class ClusteringMetrics:
         float
             The average silhouette score, ranging from -1 to 1, where a higher value indicates better clustering.
         """
-        pass
+        return silhouette_score(embeddings, cluster_labels)
 
     def purity_score(self, true_labels: List, cluster_labels: List) -> float:
         """
@@ -45,7 +46,21 @@ class ClusteringMetrics:
         float
             The purity score, ranging from 0 to 1, where a higher value indicates better clustering.
         """
-        pass
+        cluster_to_labels = {}
+
+        for true, cluster in zip(true_labels, cluster_labels):
+            if cluster not in cluster_to_labels:
+                cluster_to_labels[cluster] = []
+            cluster_to_labels[cluster].append(true)
+
+        total = 0
+        for cluster, labels in cluster_to_labels.items():
+            for label in labels:
+                if cluster in label:
+                    total += 1
+
+        purity = total / len(cluster_labels)
+        return purity
 
     def adjusted_rand_score(self, true_labels: List, cluster_labels: List) -> float:
         """
@@ -63,4 +78,4 @@ class ClusteringMetrics:
         float
             The adjusted Rand index, ranging from -1 to 1, where a higher value indicates better clustering.
         """
-        pass
+        return adjusted_rand_score(true_labels, cluster_labels)

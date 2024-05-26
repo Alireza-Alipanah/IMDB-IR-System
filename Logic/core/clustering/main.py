@@ -1,13 +1,34 @@
+########## needed for relative import ##########
+import inspect
+import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+################################################
+
 import numpy as np
 import os
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
+import wandb
 
-from ..word_embedding.fasttext_data_loader import FastTextDataLoader
-from ..word_embedding.fasttext_model import FastText
-from .dimension_reduction import DimensionReduction
-from .clustering_metrics import ClusteringMetrics
-from .clustering_utils import ClusteringUtils
+from word_embedding.fasttext_data_loader import FastTextDataLoader
+from word_embedding.fasttext_model import FastText
+from word_embedding.fasttext_model import preprocess_text
+from classification.data_loader import ReviewLoader
+try:
+    from .dimension_reduction import DimensionReduction
+    from .clustering_metrics import ClusteringMetrics
+    from .clustering_utils import ClusteringUtils
+except ImportError:
+    from dimension_reduction import DimensionReduction
+    from clustering_metrics import ClusteringMetrics
+    from clustering_utils import ClusteringUtils
+
+
+LOAD_EMBEDDINGS = True
 
 # Main Function: Clustering Tasks
 
@@ -42,3 +63,62 @@ from .clustering_utils import ClusteringUtils
 
 # 3. Evaluation
 # TODO: Using clustering metrics, evaluate how well your clustering method is performing.
+
+def main():
+    # Assuming movie_embeddings and true_movie_labels are defined elsewhere
+    # movie_embeddings =...
+    # true_movie_labels =...
+
+    # Initialize WandB
+    # wandb.init(project="MIR-2024-Project", name="Movie Clustering")
+
+    # 0.
+    fasttext_model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'word_embedding', 'FastText_model.bin')
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'utility', 'IMDB_crawled.json')
+    ft_data_loader = FastTextDataLoader(path)
+    X, y, _ = ft_data_loader.create_train_data()
+    fasttext_model = FastText(preprocessor=preprocess_text)
+    fasttext_model.prepare(None, mode = "load", path=fasttext_model_path)
+    if LOAD_EMBEDDINGS:
+        with open('embeddings.npy', 'rb') as f:
+            embeddings = np.load(f)
+    else:
+        embeddings = np.array(list(map(fasttext_model.get_query_embedding, X)))
+        with open('embeddings.npy', 'wb') as f:
+            np.save(f, embeddings)
+
+    n_components = 2
+    # 1.
+    dr = DimensionReduction()
+    pca_feats = dr.pca_reduce_dimension(embeddings, n_components=n_components)
+    dr.wandb_plot_explained_variance_by_components()
+    tsne_feats = dr.convert_to_2d_tsne(emb_vecs=embeddings[:100, :])
+    dr.wandb_plot_2d_tsne(tsne_feats)
+
+
+    # 2.
+    clustering_utils = ClusteringUtils()
+    cm = ClusteringMetrics()
+    clustering_utils.plot_kmeans_cluster_scores(embeddings, y, [3, 5, 7, 9, 11], project_name="MIR-2024-Project", run_name="Movie Clustering")
+    # 7 seems to be a good value
+    centroids, cluster_indices = clustering_utils.cluster_kmeans(embeddings, 9)
+    print(f'purity value for 7 clusters: {cm.purity_score(y, cluster_indices)}')
+
+    # 3.
+    linkage_methods = ['single', 'complete', 'average', 'ward']
+    for linkage_method in linkage_methods:
+        cluster_indices = clustering_utils.cluster_hierarchical(emb_vecs=embeddings, linkage_method=linkage_method)
+        # Convert y and cluster_indices to lists of strings
+        y_str = list(map(str, y))
+        cluster_indices_str = list(map(str, cluster_indices))
+        print(f'Purity value for {linkage_method} linkage: {cm.purity_score(y_str, cluster_indices_str)}')
+        clustering_utils.visualize_hierarchical_clustering_dendrogram(data=embeddings,
+         linkage_method=linkage_method, project_name="MIR-2024-Project", run_name=f"Hierarchical_{linkage_method}")
+
+        # wandb.log({f"{linkage_method}_dendrogram": dendrogram_plot})
+        # wandb.log({f"{linkage_method}_cluster_assignments": cluster_assignments_plot})
+    exit()
+    wandb.finish()
+
+if __name__ == "__main__":
+    main()
