@@ -166,6 +166,8 @@ cython_debug/
 *.zip
 *.csv
 *.npy
+*.pth
+MIR-Phase3-2/
 
 wandb/
 results/
