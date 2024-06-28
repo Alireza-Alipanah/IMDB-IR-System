@@ -1,12 +1,14 @@
 import streamlit as st
 import sys
+from bs4 import BeautifulSoup
+import requests
 
 sys.path.append("../")
 from Logic import utils
 import time
 from enum import Enum
 import random
-from Logic.core.snippet import Snippet
+from Logic.core.utility.snippet import Snippet
 
 snippet_obj = Snippet(
     number_of_words_on_each_side=5
@@ -21,6 +23,22 @@ class color(Enum):
     WHITE = "#FFFFFF"
     CYAN = "#00FFFF"
     MAGENTA = "#FF00FF"
+
+
+def get_movie_img(url):
+    try:
+        response = requests.get(url, headers = {
+                'User-Agent': 'IMDB Crawler'
+            })
+        soup = BeautifulSoup(response.text, 'html.parser')
+        image_element = soup.find('img', {'class': 'ipc-image'})
+        if image_element:
+            image_url = image_element['src']
+            return image_url
+        else:
+            return "https://m.media-amazon.com/images/M/MV5BNDE3ODcxYzMtY2YzZC00NmNlLWJiNDMtZDViZWM2MzIxZDYwXkEyXkFqcGdeQXVyNjAwNDUxODI@._V1_.jpg"
+    except Exception:
+        return "https://m.media-amazon.com/images/M/MV5BNDE3ODcxYzMtY2YzZC00NmNlLWJiNDMtZDViZWM2MzIxZDYwXkEyXkFqcGdeQXVyNjAwNDUxODI@._V1_.jpg"
 
 
 def get_summary_with_snippet(movie_info, query):
@@ -60,12 +78,15 @@ def search_handling(
         with st.spinner("Searching..."):
             time.sleep(0.5)  # for showing the spinner! (can be removed)
             start_time = time.time()
+            unigram_smoothing = 'mixture'
+            alpha = 0.5
+            lamda = 0.5
             result = utils.search(
                 search_term,
                 search_max_num,
                 search_method,
                 search_weights,
-                smoothing_method = unigram_smoothing,
+                smoothing_method=unigram_smoothing,
                 alpha=alpha,
                 lamda=lamda,
             )
@@ -113,7 +134,7 @@ def search_handling(
                                 unsafe_allow_html=True,
                             )
                 with card[1].container():
-                    st.image(info["Image_URL"], use_column_width=True)
+                    st.image(get_movie_img(info['URL']), use_column_width=True)
 
                 st.divider()
 
@@ -161,7 +182,7 @@ def main():
         search_weights = [weight_stars, weight_genres, weight_summary]
         search_method = st.selectbox(
             "Search method",
-            ("ltn.lnn", "ltc.lnc", "OkapiBM25"),
+            ("ltn.lnn", "ltc.lnc", "OkapiBM25", "Unigram"),
         )
 
     search_button = st.button("Search!")

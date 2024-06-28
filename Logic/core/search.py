@@ -1,11 +1,18 @@
 import json
 import numpy as np
-# from .indexer import Indexes, Index_types, Index_reader
-from utility.preprocess import Preprocessor
-from utility.scorer import Scorer
-from indexer.indexes_enum import Indexes, Index_types
-from indexer.index_reader import Index_reader
 import os
+
+# from .indexer import Indexes, Index_types, Index_reader
+try:
+    from utility.preprocess import Preprocessor
+    from utility.scorer import Scorer
+    from indexer.indexes_enum import Indexes, Index_types
+    from indexer.index_reader import Index_reader
+except Exception:
+    from .utility.preprocess import Preprocessor
+    from .utility.scorer import Scorer
+    from .indexer.indexes_enum import Indexes, Index_types
+    from .indexer.index_reader import Index_reader
 
 
 class SearchEngine:
