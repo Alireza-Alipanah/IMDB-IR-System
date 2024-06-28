@@ -168,3 +168,7 @@ cython_debug/
 *.npy
 
 wandb/
+results/
+tmp_trainer/
+mlruns/
+Movie_Genre_Classifier/
