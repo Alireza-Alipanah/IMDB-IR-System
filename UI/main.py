@@ -27,9 +27,7 @@ class color(Enum):
 
 def get_movie_img(url):
     try:
-        response = requests.get(url, headers = {
-                'User-Agent': 'IMDB Crawler'
-            })
+        response = requests.get(url, headers = {'User-Agent': 'IMDB Crawler'}, timeout=5)
         soup = BeautifulSoup(response.text, 'html.parser')
         image_element = soup.find('img', {'class': 'ipc-image'})
         if image_element:
@@ -67,20 +65,23 @@ def search_handling(
     search_max_num,
     search_weights,
     search_method,
+    unigram_smoothing,
+    alpha,
+    lamda,
+    correct_query
 ):
     if search_button:
-        corrected_query = utils.correct_text(search_term, utils.movies_dataset)
+        if correct_query:
+            corrected_query = utils.correct_text(search_term, utils.movies_dataset)
+            if corrected_query != search_term:
+                st.warning(f"Your search terms were corrected to: {corrected_query}")
+                search_term = corrected_query
 
-        if corrected_query != search_term:
-            st.warning(f"Your search terms were corrected to: {corrected_query}")
-            search_term = corrected_query
+        
 
         with st.spinner("Searching..."):
             time.sleep(0.5)  # for showing the spinner! (can be removed)
             start_time = time.time()
-            unigram_smoothing = 'mixture'
-            alpha = 0.5
-            lamda = 0.5
             result = utils.search(
                 search_term,
                 search_max_num,
@@ -155,6 +156,7 @@ def main():
         search_max_num = st.number_input(
             "Maximum number of results", min_value=5, max_value=100, value=10, step=5
         )
+        correct_query = st.checkbox("Use Spell Correction")
         weight_stars = st.slider(
             "Weight of stars in search",
             min_value=0.0,
@@ -185,6 +187,31 @@ def main():
             ("ltn.lnn", "ltc.lnc", "OkapiBM25", "Unigram"),
         )
 
+        if search_method == "Unigram":
+            unigram_smoothing = st.selectbox(
+            "Unigram Smoothing method",
+            ("bayes", "naive", "mixture"),
+            )
+            alpha = st.slider(
+                "Unigram alpha",
+                min_value=0.1,
+                max_value=1.0,
+                value=0.5,
+                step=0.1,
+            )
+
+            lamda = st.slider(
+                "Unigram lambda",
+                min_value=0.1,
+                max_value=1.0,
+                value=0.5,
+                step=0.1,
+            )
+        else:
+            unigram_smoothing = None
+            alpha=0.0
+            lamda=0.0
+
     search_button = st.button("Search!")
 
     search_handling(
@@ -193,6 +220,10 @@ def main():
         search_max_num,
         search_weights,
         search_method,
+        unigram_smoothing,
+        alpha,
+        lamda,
+        correct_query
     )
 
 
