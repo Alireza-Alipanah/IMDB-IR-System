@@ -1,12 +1,14 @@
 import streamlit as st
 import sys
+from bs4 import BeautifulSoup
+import requests
 
 sys.path.append("../")
 from Logic import utils
 import time
 from enum import Enum
 import random
-from Logic.core.snippet import Snippet
+from Logic.core.utility.snippet import Snippet
 
 snippet_obj = Snippet(
     number_of_words_on_each_side=5
@@ -21,6 +23,20 @@ class color(Enum):
     WHITE = "#FFFFFF"
     CYAN = "#00FFFF"
     MAGENTA = "#FF00FF"
+
+
+def get_movie_img(url):
+    try:
+        response = requests.get(url, headers = {'User-Agent': 'IMDB Crawler'}, timeout=5)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        image_element = soup.find('img', {'class': 'ipc-image'})
+        if image_element:
+            image_url = image_element['src']
+            return image_url
+        else:
+            return "https://m.media-amazon.com/images/M/MV5BNDE3ODcxYzMtY2YzZC00NmNlLWJiNDMtZDViZWM2MzIxZDYwXkEyXkFqcGdeQXVyNjAwNDUxODI@._V1_.jpg"
+    except Exception:
+        return "https://m.media-amazon.com/images/M/MV5BNDE3ODcxYzMtY2YzZC00NmNlLWJiNDMtZDViZWM2MzIxZDYwXkEyXkFqcGdeQXVyNjAwNDUxODI@._V1_.jpg"
 
 
 def get_summary_with_snippet(movie_info, query):
@@ -49,13 +65,19 @@ def search_handling(
     search_max_num,
     search_weights,
     search_method,
+    unigram_smoothing,
+    alpha,
+    lamda,
+    correct_query
 ):
     if search_button:
-        corrected_query = utils.correct_text(search_term, utils.movies_dataset)
+        if correct_query:
+            corrected_query = utils.correct_text(search_term, utils.movies_dataset)
+            if corrected_query != search_term:
+                st.warning(f"Your search terms were corrected to: {corrected_query}")
+                search_term = corrected_query
 
-        if corrected_query != search_term:
-            st.warning(f"Your search terms were corrected to: {corrected_query}")
-            search_term = corrected_query
+        
 
         with st.spinner("Searching..."):
             time.sleep(0.5)  # for showing the spinner! (can be removed)
@@ -65,6 +87,9 @@ def search_handling(
                 search_max_num,
                 search_method,
                 search_weights,
+                smoothing_method=unigram_smoothing,
+                alpha=alpha,
+                lamda=lamda,
             )
             print(f"Result: {result}")
             end_time = time.time()
@@ -110,7 +135,7 @@ def search_handling(
                                 unsafe_allow_html=True,
                             )
                 with card[1].container():
-                    st.image(info["Image_URL"], use_column_width=True)
+                    st.image(get_movie_img(info['URL']), use_column_width=True)
 
                 st.divider()
 
@@ -131,6 +156,7 @@ def main():
         search_max_num = st.number_input(
             "Maximum number of results", min_value=5, max_value=100, value=10, step=5
         )
+        correct_query = st.checkbox("Use Spell Correction")
         weight_stars = st.slider(
             "Weight of stars in search",
             min_value=0.0,
@@ -158,8 +184,33 @@ def main():
         search_weights = [weight_stars, weight_genres, weight_summary]
         search_method = st.selectbox(
             "Search method",
-            ("ltn.lnn", "ltc.lnc", "OkapiBM25"),
+            ("ltn.lnn", "ltc.lnc", "OkapiBM25", "Unigram"),
         )
+
+        if search_method == "Unigram":
+            unigram_smoothing = st.selectbox(
+            "Unigram Smoothing method",
+            ("mixture", "bayes", "naive"),
+            )
+            alpha = st.slider(
+                "Unigram alpha",
+                min_value=0.1,
+                max_value=1.0,
+                value=0.5,
+                step=0.1,
+            )
+
+            lamda = st.slider(
+                "Unigram lambda",
+                min_value=0.1,
+                max_value=1.0,
+                value=0.5,
+                step=0.1,
+            )
+        else:
+            unigram_smoothing = None
+            alpha=0.0
+            lamda=0.0
 
     search_button = st.button("Search!")
 
@@ -169,6 +220,10 @@ def main():
         search_max_num,
         search_weights,
         search_method,
+        unigram_smoothing,
+        alpha,
+        lamda,
+        correct_query
     )
 
 

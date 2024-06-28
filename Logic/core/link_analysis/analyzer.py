@@ -8,9 +8,12 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 ################################################
 
-from graph import LinkGraph
-from indexer.indexes_enum import Indexes
-from indexer.index_reader import Index_reader
+try:
+    from graph import LinkGraph
+    from indexer.indexes_enum import Indexes
+    from indexer.index_reader import Index_reader
+except Exception:
+    pass
 
 class LinkAnalyzer:
     def __init__(self, root_set):

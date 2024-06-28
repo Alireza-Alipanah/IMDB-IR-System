@@ -9,7 +9,7 @@ import os
 
 movies_dataset = {}  # TODO: load your movies dataset (from the json file you saved your indexes in), here
 # You can refer to `get_movie_by_id` to see how this is used.
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'core', 'IMDB_crawled.json')
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'core', 'utility', 'IMDB_crawled.json')
 with open(path, 'r') as f:
     data = json.load(f)
 for doc in data:
@@ -53,6 +53,9 @@ def search(
     weights: list = [0.3, 0.3, 0.4],
     should_print=False,
     preferred_genre: str = None,
+    smoothing_method = None, 
+    alpha=0.5, 
+    lamda=0.5, 
 ):
     """
     Finds relevant documents to query
@@ -88,7 +91,7 @@ def search(
         Indexes.SUMMARIES: weights[2]
     }
     return search_engine.search(
-        query, method, weights, max_results=max_result_count, safe_ranking=True
+        query, method, weights, max_results=max_result_count, safe_ranking=True, smoothing_method=smoothing_method, alpha=alpha, lamda=lamda
     )
 
 
