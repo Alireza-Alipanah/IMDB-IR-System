@@ -190,7 +190,7 @@ def main():
         if search_method == "Unigram":
             unigram_smoothing = st.selectbox(
             "Unigram Smoothing method",
-            ("bayes", "naive", "mixture"),
+            ("mixture", "bayes", "naive"),
             )
             alpha = st.slider(
                 "Unigram alpha",
